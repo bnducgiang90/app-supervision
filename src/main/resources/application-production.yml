@@ -1,13 +1,11 @@
-# Production Configuration for Render.com
 spring:
   application:
-    name: realtime-chat-prod
+    name: app-supervision
   
   r2dbc:
-    # Use environment variables from Render.com
-    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/chatdb}
-    username: ${SPRING_R2DBC_USERNAME:postgres}
-    password: ${SPRING_R2DBC_PASSWORD:}
+    url: r2dbc:postgresql://pg-1bdfb7fc-bnducgiang90-e689.h.aivencloud.com:20545/chatdb
+    username: avnadmin
+    password: AVNS_77HncySd8jtR-oBbnU9
     pool:
       initial-size: 10
       max-size: 50
@@ -22,19 +20,18 @@ spring:
       max-request-size: 100MB
 
 server:
-  # Render.com sets PORT environment variable
-  port: ${PORT:8080}
+  port: 8080
 
 # Storage Configuration
 storage:
-  type: ${STORAGE_TYPE:local}
+  type: local  # Options: minio, local
   local:
-    upload-dir: ${STORAGE_LOCAL_UPLOAD_DIR:./uploads}
+    upload-dir: ./uploads
   minio:
-    endpoint: ${STORAGE_MINIO_ENDPOINT:http://localhost:9000}
-    access-key: ${STORAGE_MINIO_ACCESS_KEY:minioadmin}
-    secret-key: ${STORAGE_MINIO_SECRET_KEY:minioadmin}
-    bucket: ${STORAGE_MINIO_BUCKET:chat-files}
+    endpoint: http://localhost:9000
+    access-key: minioadmin
+    secret-key: minioadmin
+    bucket: chat-files
     auto-create-bucket: true
 
 # SSE Configuration
@@ -42,14 +39,11 @@ sse:
   timeout: 3600000  # 1 hour in milliseconds
   heartbeat-interval: 30000  # 30 seconds
 
-# Logging - Less verbose in production
 logging:
   level:
-    root: ${LOGGING_LEVEL_ROOT:INFO}
-    com.chatapp: ${LOGGING_LEVEL_COM_CHATAPP:INFO}
-    io.r2dbc.postgresql: WARN
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    root: INFO
+    com.chatapp: DEBUG
+    io.r2dbc.postgresql: DEBUG
 
 # Swagger / OpenAPI Configuration
 springdoc:
@@ -64,6 +58,5 @@ springdoc:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:your-256-bit-secret-key-change-this-in-production-environment-please}
-  expiration: ${JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
-
+  secret: Admin123#!
+  expiration: 86400000  # 24 hours in milliseconds
