@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: app-supervision
+  
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/chatdb
+    username: postgres
+    password: Postgres#123
+    pool:
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 30m
+  
+  codec:
+    max-in-memory-size: 20MB
+  
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+server:
+  port: 8080
+
+# Storage Configuration
+storage:
+  type: local  # Options: minio, local
+  local:
+    upload-dir: ./uploads
+  minio:
+    endpoint: http://localhost:9000
+    access-key: minioadmin
+    secret-key: minioadmin
+    bucket: chat-files
+    auto-create-bucket: true
+
+# SSE Configuration
+sse:
+  timeout: 3600000  # 1 hour in milliseconds
+  heartbeat-interval: 30000  # 30 seconds
+
+logging:
+  level:
+    root: INFO
+    com.chatapp: DEBUG
+    io.r2dbc.postgresql: DEBUG
+
+# Swagger / OpenAPI Configuration
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+
+# JWT Configuration
+jwt:
+  secret: Admin123#!
+  expiration: 86400000  # 24 hours in milliseconds

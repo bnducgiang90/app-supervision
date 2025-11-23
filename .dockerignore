@@ -1,0 +1,57 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+bin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+test-api.sh
+postman-collection.json
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Logs
+logs/
+*.log
+
+# Uploads (will be created at runtime)
+uploads/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+

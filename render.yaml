@@ -1,0 +1,55 @@
+# Render.com Blueprint Configuration
+# This file helps configure your service on Render.com
+
+services:
+  - type: web
+    name: realtime-chat-app
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter # or free, standard, pro
+    region: singapore # or oregon, frankfurt, etc.
+    healthCheckPath: /api/users/login
+    envVars:
+      # Database Configuration (use Render PostgreSQL service)
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: SPRING_R2DBC_URL
+        value: r2dbc:postgresql://your-db-host:5432/your-db-name
+      - key: SPRING_R2DBC_USERNAME
+        value: your-db-username
+      - key: SPRING_R2DBC_PASSWORD
+        value: your-db-password
+      
+      # JWT Configuration
+      - key: JWT_SECRET
+        value: your-256-bit-secret-key-change-this-in-production-environment-please
+      - key: JWT_EXPIRATION
+        value: 86400000
+      
+      # Storage Configuration
+      - key: STORAGE_TYPE
+        value: local # or minio if using MinIO
+      - key: STORAGE_LOCAL_UPLOAD_DIR
+        value: /app/uploads
+      
+      # Server Configuration
+      - key: SERVER_PORT
+        value: 8080
+      - key: PORT
+        value: 8080
+      
+      # Logging
+      - key: LOGGING_LEVEL_ROOT
+        value: INFO
+      - key: LOGGING_LEVEL_COM_CHATAPP
+        value: INFO
+
+# Optional: PostgreSQL Database Service
+# Uncomment if you want Render to create a PostgreSQL database
+# databases:
+#   - name: chatdb
+#     plan: starter
+#     databaseName: chatdb
+#     user: chatdb_user
+

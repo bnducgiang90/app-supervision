@@ -1,0 +1,271 @@
+package com.klkt.supervision.service;
+
+import com.klkt.supervision.dto.AttachmentResponse;
+import com.klkt.supervision.dto.MessageResponse;
+import com.klkt.supervision.dto.SendMessageRequest;
+import com.klkt.supervision.entity.Message;
+import com.klkt.supervision.entity.MessageAttachment;
+import com.klkt.supervision.repository.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class MessageService {
+    
+    private final MessageRepository messageRepository;
+    private final MessageAttachmentRepository attachmentRepository;
+    private final UserRepository userRepository;
+    private final GroupRepository groupRepository;
+    private final GroupMemberRepository groupMemberRepository;
+    private final FileStorageService fileStorageService;
+    private final SSEService sseService;
+    
+    public Mono<MessageResponse> sendMessage(SendMessageRequest request) {
+        return validateUserInGroup(request.getSenderId(), request.getGroupId())
+                .flatMap(valid -> {
+                    if (!valid) {
+                        return Mono.error(new RuntimeException(
+                                "User is not a member of this group"));
+                    }
+                    
+                    // Get group to retrieve group_code
+                    return groupRepository.findById(request.getGroupId())
+                            .switchIfEmpty(Mono.error(new RuntimeException("Group not found")))
+                            .flatMap(group -> {
+                                Message message = Message.builder()
+                                        .groupId(request.getGroupId())
+                                        .groupCode(group.getGroupCode())
+                                        .senderId(request.getSenderId())
+                                        .content(request.getContent())
+                                        .messageType(Message.MessageType.valueOf(
+                                                request.getMessageType().toUpperCase()))
+                                        .createdAt(LocalDateTime.now())
+                                        .updatedAt(LocalDateTime.now())
+                                        .build();
+                                
+                                return messageRepository.save(message)
+                                        .flatMap(savedMessage -> 
+                                                buildMessageResponse(savedMessage, List.of()))
+                                        .doOnSuccess(msgResponse -> {
+                                            log.info("Message sent to group {} (code: {}): {}", 
+                                                    request.getGroupId(), group.getGroupCode(), msgResponse.getId());
+                                            sseService.sendToGroup(request.getGroupId(), 
+                                                    "new_message", msgResponse);
+                                        });
+                            });
+                });
+    }
+    
+    public Mono<MessageResponse> sendMessageWithAttachments(
+            SendMessageRequest request, 
+            List<FilePart> files) {
+        
+        return validateUserInGroup(request.getSenderId(), request.getGroupId())
+                .flatMap(valid -> {
+                    if (!valid) {
+                        return Mono.error(new RuntimeException(
+                                "User is not a member of this group"));
+                    }
+                    
+                    // Get group to retrieve group_code
+                    return groupRepository.findById(request.getGroupId())
+                            .switchIfEmpty(Mono.error(new RuntimeException("Group not found")))
+                            .flatMap(group -> {
+                                // Determine message type from files
+                                String messageType = determineMessageType(files);
+                                
+                                Message message = Message.builder()
+                                        .groupId(request.getGroupId())
+                                        .groupCode(group.getGroupCode())
+                                        .senderId(request.getSenderId())
+                                        .content(request.getContent())
+                                        .messageType(Message.MessageType.valueOf(messageType))
+                                        .createdAt(LocalDateTime.now())
+                                        .updatedAt(LocalDateTime.now())
+                                        .build();
+                                
+                                return messageRepository.save(message)
+                                        .flatMap(savedMessage -> 
+                                                uploadAttachments(savedMessage.getId(), savedMessage.getGroupCode(), files)
+                                                        .collectList()
+                                                        .flatMap(attachments -> {
+                                                            // Store additional metadata in infoData if needed (optional)
+                                                            if (!attachments.isEmpty()) {
+                                                                java.util.Map<String, Object> infoMap = new java.util.HashMap<>();
+                                                                infoMap.put("attachmentCount", attachments.size());
+                                                                
+                                                                try {
+                                                                    com.fasterxml.jackson.databind.ObjectMapper mapper = 
+                                                                            new com.fasterxml.jackson.databind.ObjectMapper();
+                                                                    savedMessage.setInfoData(mapper.writeValueAsString(infoMap));
+                                                                    return messageRepository.save(savedMessage)
+                                                                            .flatMap(updatedMessage -> 
+                                                                                    buildMessageResponse(updatedMessage, attachments));
+                                                                } catch (Exception e) {
+                                                                    log.warn("Failed to serialize info data", e);
+                                                                    return buildMessageResponse(savedMessage, attachments);
+                                                                }
+                                                            } else {
+                                                                return buildMessageResponse(savedMessage, attachments);
+                                                            }
+                                                        })
+                                                        .doOnSuccess(msgResponse -> {
+                                                            // Broadcast SSE event after message is successfully created and attachments uploaded
+                                                            log.info("Message with {} attachments sent to group {} (code: {}), broadcasting SSE event", 
+                                                                    files.size(), request.getGroupId(), group.getGroupCode());
+                                                            if (msgResponse != null) {
+                                                                sseService.sendToGroup(request.getGroupId(), 
+                                                                        "new_message", msgResponse);
+                                                            } else {
+                                                                log.warn("Message response is null, cannot broadcast SSE event");
+                                                            }
+                                                        })
+                                                        .doOnError(error -> {
+                                                            log.error("Error processing message with attachments for group {}", 
+                                                                    request.getGroupId(), error);
+                                                        }));
+                            });
+                });
+    }
+    
+    public Flux<MessageResponse> getGroupMessages(Long groupId, Long userId, Integer page, Integer size) {
+        PageRequest pageRequest = PageRequest.of(
+                page != null ? page : 0, 
+                size != null ? size : 50
+        );
+        
+        // Validate user has access to this group (ADMIN or member)
+        return validateUserInGroup(userId, groupId)
+                .flatMapMany(hasAccess -> {
+                    if (!hasAccess) {
+                        return Flux.error(new RuntimeException(
+                                "User does not have access to this group"));
+                    }
+                    
+                    return messageRepository.findByGroupIdOrderByCreatedAtDesc(groupId, pageRequest)
+                            .flatMap(message -> 
+                                    attachmentRepository.findByMessageId(message.getId())
+                                            .collectList()
+                                            .flatMap(attachments -> 
+                                                    buildMessageResponse(message, attachments)));
+                });
+    }
+    
+    public Mono<MessageResponse> getMessageById(Long messageId) {
+        return messageRepository.findById(messageId)
+                .flatMap(message -> 
+                        attachmentRepository.findByMessageId(message.getId())
+                                .collectList()
+                                .flatMap(attachments -> 
+                                        buildMessageResponse(message, attachments)))
+                .switchIfEmpty(Mono.error(new RuntimeException("Message not found")));
+    }
+    
+    private Mono<Boolean> validateUserInGroup(Long userId, Long groupId) {
+        // First check if user is ADMIN - if so, allow access to all groups
+        return userRepository.findById(userId)
+                .flatMap(user -> {
+                    if (user.getRole() != null && user.getRole() == com.klkt.supervision.entity.User.UserRole.ADMIN) {
+                        return Mono.just(true);
+                    }
+                    // If not ADMIN, check if user is a member of the group
+                    return groupMemberRepository.existsByGroupIdAndUserId(groupId, userId);
+                })
+                .switchIfEmpty(Mono.just(false));
+    }
+    
+    private Flux<MessageAttachment> uploadAttachments(Long messageId, String groupCode, List<FilePart> files) {
+        // Get current date in yyyy-MM-dd format
+        String dateFolder = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        
+        return Flux.fromIterable(files)
+                .flatMap(file -> {
+                    // New folder structure: group_code/messages/messageId/yyyy-MM-dd
+                    String folder = groupCode + "/messages/" + messageId + "/" + dateFolder;
+                    return fileStorageService.uploadFile(file, folder)
+                            .flatMap(uploadResponse -> {
+                                MessageAttachment attachment = MessageAttachment.builder()
+                                        .messageId(messageId)
+                                        .fileName(uploadResponse.getFileName())
+                                        .fileType(uploadResponse.getFileType())
+                                        .fileSize(uploadResponse.getFileSize())
+                                        .fileUrl(uploadResponse.getFileUrl())
+                                        .storagePath(uploadResponse.getStoragePath())
+                                        .thumbnailUrl(uploadResponse.getThumbnailUrl())
+                                        .createdAt(LocalDateTime.now())
+                                        .build();
+                                
+                                return attachmentRepository.save(attachment);
+                            });
+                });
+    }
+    
+    private Mono<MessageResponse> buildMessageResponse(
+            Message message, 
+            List<MessageAttachment> attachments) {
+        
+        return userRepository.findById(message.getSenderId())
+                .map(sender -> {
+                    List<AttachmentResponse> attachmentResponses = attachments.stream()
+                            .map(att -> AttachmentResponse.builder()
+                                    .id(att.getId())
+                                    .fileName(att.getFileName())
+                                    .fileType(att.getFileType())
+                                    .fileSize(att.getFileSize())
+                                    .fileUrl(att.getFileUrl())
+                                    .thumbnailUrl(att.getThumbnailUrl())
+                                    .build())
+                            .toList();
+                    
+                    return MessageResponse.builder()
+                            .id(message.getId())
+                            .groupId(message.getGroupId())
+                            .senderId(message.getSenderId())
+                            .senderName(sender.getDisplayName())
+                            .senderAvatar(sender.getAvatarUrl())
+                            .content(message.getContent())
+                            .messageType(message.getMessageType().name())
+                            .attachments(attachmentResponses)
+                            .createdAt(message.getCreatedAt())
+                            .build();
+                })
+                .defaultIfEmpty(MessageResponse.builder()
+                        .id(message.getId())
+                        .groupId(message.getGroupId())
+                        .senderId(message.getSenderId())
+                        .senderName("Unknown User")
+                        .content(message.getContent())
+                        .messageType(message.getMessageType().name())
+                        .attachments(List.of())
+                        .createdAt(message.getCreatedAt())
+                        .build());
+    }
+    
+    
+    private String determineMessageType(List<FilePart> files) {
+        if (files == null || files.isEmpty()) {
+            return "TEXT";
+        }
+        
+        String firstFileName = files.get(0).filename().toLowerCase();
+        if (firstFileName.matches(".*\\.(jpg|jpeg|png|gif|webp)$")) {
+            return "IMAGE";
+        } else if (firstFileName.matches(".*\\.(mp4|avi|mov|wmv|flv)$")) {
+            return "VIDEO";
+        }
+        
+        return "FILE";
+    }
+}

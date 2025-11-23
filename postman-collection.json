@@ -1,0 +1,306 @@
+{
+  "info": {
+    "name": "Realtime Chat API",
+    "description": "Collection for testing Realtime Chat Application APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"john_doe\",\n  \"displayName\": \"John Doe\",\n  \"avatarUrl\": \"https://example.com/avatar.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"]
+            }
+          }
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get User by Username",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/users/username/john_doe",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "username", "john_doe"]
+            }
+          }
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{base_url}}/api/users/1/status?status=ONLINE",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "1", "status"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ONLINE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Groups",
+      "item": [
+        {
+          "name": "Create Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Team Chat\",\n  \"description\": \"Team discussion group\",\n  \"avatarUrl\": \"https://example.com/group.jpg\",\n  \"createdBy\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/groups",
+              "host": ["{{base_url}}"],
+              "path": ["api", "groups"]
+            }
+          }
+        },
+        {
+          "name": "Get Group by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/groups/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "groups", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get User Groups",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/groups/user/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "groups", "user", "1"]
+            }
+          }
+        },
+        {
+          "name": "Add Member to Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 2,\n  \"role\": \"MEMBER\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/groups/1/members",
+              "host": ["{{base_url}}"],
+              "path": ["api", "groups", "1", "members"]
+            }
+          }
+        },
+        {
+          "name": "Get Group Members",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/groups/1/members",
+              "host": ["{{base_url}}"],
+              "path": ["api", "groups", "1", "members"]
+            }
+          }
+        },
+        {
+          "name": "Remove Member from Group",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/groups/1/members/2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "groups", "1", "members", "2"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Send Text Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": 1,\n  \"senderId\": 1,\n  \"content\": \"Hello everyone!\",\n  \"messageType\": \"TEXT\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Send Message with Files",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "{\"groupId\":1,\"senderId\":1,\"content\":\"Check out this image!\",\"messageType\":\"IMAGE\"}",
+                  "type": "text"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "upload"]
+            }
+          }
+        },
+        {
+          "name": "Get Group Messages",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/messages/group/1?page=0&size=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "group", "1"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Message by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/messages/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SSE",
+      "item": [
+        {
+          "name": "Get SSE Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/sse/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sse", "status"]
+            }
+          }
+        },
+        {
+          "name": "Get User SSE Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/sse/status/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sse", "status", "1"]
+            }
+          }
+        },
+        {
+          "name": "Disconnect User",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/sse/disconnect/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sse", "disconnect", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

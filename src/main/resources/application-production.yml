@@ -1,0 +1,69 @@
+# Production Configuration for Render.com
+spring:
+  application:
+    name: realtime-chat-prod
+  
+  r2dbc:
+    # Use environment variables from Render.com
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/chatdb}
+    username: ${SPRING_R2DBC_USERNAME:postgres}
+    password: ${SPRING_R2DBC_PASSWORD:}
+    pool:
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 30m
+  
+  codec:
+    max-in-memory-size: 20MB
+  
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+server:
+  # Render.com sets PORT environment variable
+  port: ${PORT:8080}
+
+# Storage Configuration
+storage:
+  type: ${STORAGE_TYPE:local}
+  local:
+    upload-dir: ${STORAGE_LOCAL_UPLOAD_DIR:./uploads}
+  minio:
+    endpoint: ${STORAGE_MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${STORAGE_MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${STORAGE_MINIO_SECRET_KEY:minioadmin}
+    bucket: ${STORAGE_MINIO_BUCKET:chat-files}
+    auto-create-bucket: true
+
+# SSE Configuration
+sse:
+  timeout: 3600000  # 1 hour in milliseconds
+  heartbeat-interval: 30000  # 30 seconds
+
+# Logging - Less verbose in production
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.chatapp: ${LOGGING_LEVEL_COM_CHATAPP:INFO}
+    io.r2dbc.postgresql: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Swagger / OpenAPI Configuration
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:your-256-bit-secret-key-change-this-in-production-environment-please}
+  expiration: ${JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
+
