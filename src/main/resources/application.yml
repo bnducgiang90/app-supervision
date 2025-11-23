@@ -3,9 +3,9 @@ spring:
     name: app-supervision
   
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/chatdb
-    username: postgres
-    password: Postgres#123
+    url: r2dbc:postgresql://pg-1bdfb7fc-bnducgiang90-e689.h.aivencloud.com:20545/chatdb
+    username: avnadmin
+    password: AVNS_77HncySd8jtR-oBbnU9
     pool:
       initial-size: 10
       max-size: 50
