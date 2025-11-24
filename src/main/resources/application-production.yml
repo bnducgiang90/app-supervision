@@ -3,9 +3,9 @@ spring:
     name: app-supervision
   
   r2dbc:
-    url: r2dbc:postgresql://pg-1bdfb7fc-bnducgiang90-e689.h.aivencloud.com:20545/chatdb?sslmode=require
+    url: r2dbc:postgresql://pg-22aff13-trinhtrananlong-e7e5.k.aivencloud.com:15905/defaultdb?sslmode=require
     username: avnadmin
-    password: AVNS_77HncySd8jtR-oBbnU9
+    password: AVNS_zzjSEfOqQKjgKMXhlm7
     pool:
       initial-size: 10
       max-size: 50
