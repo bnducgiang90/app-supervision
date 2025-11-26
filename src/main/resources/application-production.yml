@@ -1,10 +1,12 @@
-# Production Configuration for Render.com
 spring:
   application:
-    name: realtime-chat-prod
+    name: app-supervision
   
   r2dbc:
+<<<<<<< HEAD
     # Use environment variables from Render.com
+=======
+>>>>>>> 2b03042ae773a023b1166a6e5f5c93b9c45f8231
     url: r2dbc:postgresql://pg-22aff13-trinhtrananlong-e7e5.k.aivencloud.com:15905/defaultdb?sslmode=require
     username: avnadmin
     password: AVNS_zzjSEfOqQKjgKMXhlm7
@@ -22,19 +24,18 @@ spring:
       max-request-size: 100MB
 
 server:
-  # Render.com sets PORT environment variable
-  port: ${PORT:8080}
+  port: 8080
 
 # Storage Configuration
 storage:
-  type: ${STORAGE_TYPE:local}
+  type: local  # Options: minio, local
   local:
-    upload-dir: ${STORAGE_LOCAL_UPLOAD_DIR:./uploads}
+    upload-dir: ./uploads
   minio:
-    endpoint: ${STORAGE_MINIO_ENDPOINT:http://localhost:9000}
-    access-key: ${STORAGE_MINIO_ACCESS_KEY:minioadmin}
-    secret-key: ${STORAGE_MINIO_SECRET_KEY:minioadmin}
-    bucket: ${STORAGE_MINIO_BUCKET:chat-files}
+    endpoint: http://localhost:9000
+    access-key: minioadmin
+    secret-key: minioadmin
+    bucket: chat-files
     auto-create-bucket: true
 
 # SSE Configuration
@@ -42,14 +43,11 @@ sse:
   timeout: 3600000  # 1 hour in milliseconds
   heartbeat-interval: 30000  # 30 seconds
 
-# Logging - Less verbose in production
 logging:
   level:
-    root: ${LOGGING_LEVEL_ROOT:INFO}
-    com.chatapp: ${LOGGING_LEVEL_COM_CHATAPP:INFO}
-    io.r2dbc.postgresql: WARN
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    root: INFO
+    com.chatapp: DEBUG
+    io.r2dbc.postgresql: DEBUG
 
 # Swagger / OpenAPI Configuration
 springdoc:
@@ -64,6 +62,5 @@ springdoc:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:your-256-bit-secret-key-change-this-in-production-environment-please}
-  expiration: ${JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
-
+  secret: RrD4X91TgrzsrZjAx3ELoltYweXSrGH/wfHgjBKobcs=
+  expiration: 86400000  # 24 hours in milliseconds
