@@ -5,9 +5,9 @@ spring:
   
   r2dbc:
     # Use environment variables from Render.com
-    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/chatdb}
-    username: ${SPRING_R2DBC_USERNAME:postgres}
-    password: ${SPRING_R2DBC_PASSWORD:}
+    url: r2dbc:postgresql://pg-22aff13-trinhtrananlong-e7e5.k.aivencloud.com:15905/defaultdb?sslmode=require
+    username: avnadmin
+    password: AVNS_zzjSEfOqQKjgKMXhlm7
     pool:
       initial-size: 10
       max-size: 50

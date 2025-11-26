@@ -42,5 +42,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
 # Run the application
 # Render.com sets PORT env var, Spring Boot will read it from application-production.yml
 # Set profile to production for Render.com deployment
-ENTRYPOINT ["sh", "-c", "java -jar -Dspring.profiles.active=production -Djava.security.egd=file:/dev/./urandom app.jar"]
+ENTRYPOINT ["sh", "-c", "java -jar -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-dev} -Djava.security.egd=file:/dev/./urandom app.jar"]
 

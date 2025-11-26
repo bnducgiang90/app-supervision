@@ -1,69 +1,52 @@
-version: '3.8'
+version: "3.9"
 
 services:
-  # PostgreSQL Database
-  postgres:
+  db:
     image: postgres:16-alpine
-    container_name: chat-postgres
+    container_name: app-supervision-postgres
     environment:
       POSTGRES_DB: chatdb
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_INITDB_ARGS: "-E UTF8"
+      POSTGRES_PASSWORD: Postgres#123
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - chat-network
+      # Khởi tạo schema + sample data đúng như file schema.sql
+      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      # Lưu data PostgreSQL ra ngoài để không mất khi restart
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chatdb"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # MinIO Object Storage
-  minio:
-    image: minio/minio:latest
-    container_name: chat-minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"  # API
-      - "9001:9001"  # Console
-    volumes:
-      - minio_data:/data
-    networks:
-      - chat-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
-  # Optional: pgAdmin for database management
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: chat-pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-    ports:
-      - "5050:80"
-    networks:
-      - chat-network
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app-supervision-app
     depends_on:
-      - postgres
+      db:
+        condition: service_healthy
+    environment:
+      # Dùng profile dev để lấy cấu hình gần với local
+      SPRING_PROFILES_ACTIVE: dev
+
+      # Override host DB bên trong container (dùng service name 'db' thay vì localhost)
+      SPRING_R2DBC_URL: r2dbc:postgresql://db:5432/chatdb
+      SPRING_R2DBC_USERNAME: postgres
+      SPRING_R2DBC_PASSWORD: Postgres#123
+
+      # Tùy chọn: chỉnh thư mục upload nếu muốn
+      STORAGE_TYPE: local
+    ports:
+      - "8080:8080"
+    volumes:
+      # Map thư mục uploads ra host để xem file dễ hơn và tránh mất dữ liệu
+      - ./uploads:/app/uploads
 
 volumes:
-  postgres_data:
-    driver: local
-  minio_data:
-    driver: local
+  pgdata:
 
-networks:
-  chat-network:
-    driver: bridge
+

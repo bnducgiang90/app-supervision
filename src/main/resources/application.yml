@@ -3,6 +3,9 @@ spring:
     name: app-supervision
   
   r2dbc:
+#    url: r2dbc:postgresql://pg-22aff13-trinhtrananlong-e7e5.k.aivencloud.com:15905/defaultdb?sslmode=require
+#    username: avnadmin
+#    password: AVNS_zzjSEfOqQKjgKMXhlm7
     url: r2dbc:postgresql://localhost:5432/chatdb
     username: postgres
     password: Postgres#123
@@ -58,5 +61,5 @@ springdoc:
 
 # JWT Configuration
 jwt:
-  secret: Admin123#!
+  secret: RrD4X91TgrzsrZjAx3ELoltYweXSrGH/wfHgjBKobcs=
   expiration: 86400000  # 24 hours in milliseconds
