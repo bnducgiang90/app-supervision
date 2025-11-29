@@ -36,18 +36,31 @@ public class MessageController {
             @RequestPart(value = "files", required = false) Flux<FilePart> files) {
         
         log.info("=== Received upload request ===");
-        log.info("Message JSON: {}", messageJson);
+        log.info("Message JSON (raw): {}", messageJson);
+        log.info("Message JSON length: {}", messageJson != null ? messageJson.length() : 0);
         
         return Mono.fromCallable(() -> {
+                    log.info("Parsing JSON string to SendMessageRequest...");
                     SendMessageRequest request = objectMapper.readValue(messageJson, SendMessageRequest.class);
+                    log.info("Parsed successfully. InfoData is null: {}", request.getInfoData() == null);
                     log.info("=== Parsed SendMessageRequest ===");
                     log.info("GroupId: {}", request.getGroupId());
                     log.info("SenderId: {}", request.getSenderId());
                     log.info("Content: {}", request.getContent());
                     log.info("MessageType: {}", request.getMessageType());
-                    log.info("Latitude: {}", request.getLatitude());
-                    log.info("Longitude: {}", request.getLongitude());
-                    log.info("LocationDetail: {}", request.getLocationDetail());
+                    if (request.getInfoData() != null) {
+                        log.info("InfoData: {}", request.getInfoData());
+                        Object locationObj = request.getInfoData().get("location");
+                        if (locationObj instanceof java.util.Map) {
+                            @SuppressWarnings("unchecked")
+                            java.util.Map<String, Object> location = (java.util.Map<String, Object>) locationObj;
+                            log.info("Location - Latitude: {}", location.get("latitude"));
+                            log.info("Location - Longitude: {}", location.get("longitude"));
+                            log.info("Location - LocationDetail: {}", location.get("locationDetail"));
+                        }
+                    } else {
+                        log.info("InfoData is null");
+                    }
                     return request;
                 })
                 .flatMap(request -> 

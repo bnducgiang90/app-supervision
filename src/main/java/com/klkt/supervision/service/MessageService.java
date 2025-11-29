@@ -88,9 +88,19 @@ public class MessageService {
                                 
                                 // Log location data from request
                                 log.info("=== Location Data from Request ===");
-                                log.info("Latitude: {}", request.getLatitude());
-                                log.info("Longitude: {}", request.getLongitude());
-                                log.info("LocationDetail: {}", request.getLocationDetail());
+                                if (request.getInfoData() != null) {
+                                    log.info("InfoData: {}", request.getInfoData());
+                                    Object locationObj = request.getInfoData().get("location");
+                                    if (locationObj instanceof java.util.Map) {
+                                        @SuppressWarnings("unchecked")
+                                        java.util.Map<String, Object> location = (java.util.Map<String, Object>) locationObj;
+                                        log.info("Location - Latitude: {}", location.get("latitude"));
+                                        log.info("Location - Longitude: {}", location.get("longitude"));
+                                        log.info("Location - LocationDetail: {}", location.get("locationDetail"));
+                                    }
+                                } else {
+                                    log.info("InfoData is null");
+                                }
                                 
                                 Message message = Message.builder()
                                         .groupId(request.getGroupId())
@@ -105,8 +115,32 @@ public class MessageService {
                                 return messageRepository.save(message)
                                         .flatMap(savedMessage -> {
                                                 log.info("Saved message with id: {}", savedMessage.getId());
+                                                // Extract location data from infoData Map
+                                                Double latitude = null;
+                                                Double longitude = null;
+                                                String locationDetail = null;
+                                                if (request.getInfoData() != null) {
+                                                    Object locationObj = request.getInfoData().get("location");
+                                                    if (locationObj instanceof java.util.Map) {
+                                                        @SuppressWarnings("unchecked")
+                                                        java.util.Map<String, Object> location = (java.util.Map<String, Object>) locationObj;
+                                                        Object latObj = location.get("latitude");
+                                                        Object longObj = location.get("longitude");
+                                                        Object detailObj = location.get("locationDetail");
+                                                        
+                                                        if (latObj instanceof Number) {
+                                                            latitude = ((Number) latObj).doubleValue();
+                                                        }
+                                                        if (longObj instanceof Number) {
+                                                            longitude = ((Number) longObj).doubleValue();
+                                                        }
+                                                        if (detailObj instanceof String) {
+                                                            locationDetail = (String) detailObj;
+                                                        }
+                                                    }
+                                                }
                                                 return uploadAttachments(savedMessage.getId(), savedMessage.getGroupCode(), files, 
-                                                        request.getLatitude(), request.getLongitude(), request.getLocationDetail())
+                                                        latitude, longitude, locationDetail)
                                                         .collectList()
                                                         .flatMap(attachments -> {
                                                             // Store additional metadata in infoData if needed (optional)

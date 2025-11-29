@@ -1773,14 +1773,50 @@
                 if (files && files.length > 0) {
                     console.log('Sending message with files:', files.length);
                     const formData = new FormData();
-                    const message = {
+                    
+                    // Default location: Hà Nội, Việt Nam
+                    const defaultLocation = {
+                        latitude: 21.0285,
+                        longitude: 105.8542,
+                        locationDetail: "Hà Nội, Việt Nam"
+                    };
+                    
+                    // Try to get location from device (if available and user allows)
+                    let locationData = defaultLocation;
+                    if (navigator.geolocation) {
+                        // Note: getCurrentPosition is async, so we'll use default for now
+                        // In production, you might want to get location before sending
+                        console.log('Geolocation available, but using default location for now');
+                    }
+                    
+                    // Create messageData with infoData containing location
+                    // Format: {groupId, senderId, content, messageType, infoData: {location: {latitude, longitude, locationDetail}}}
+                    const messageData = {
                         groupId: parseInt(currentGroupId),
                         senderId: parseInt(currentUser.id),
                         content: content || '',
                         messageType: files[0].type.startsWith('image/') ? 'IMAGE' : 
-                                    files[0].type.startsWith('video/') ? 'VIDEO' : 'TEXT'
+                                    files[0].type.startsWith('video/') ? 'VIDEO' : 'TEXT',
+                        infoData: {
+                            location: {
+                                latitude: locationData.latitude,
+                                longitude: locationData.longitude,
+                                locationDetail: locationData.locationDetail
+                            }
+                        }
                     };
-                    formData.append('message', JSON.stringify(message));
+                    
+                    // Log messageData to console for debugging
+                    console.log('=== MessageData to send ===');
+                    console.log('Full messageData:', messageData);
+                    console.log('JSON string:', JSON.stringify(messageData));
+                    console.log('Has infoData:', !!messageData.infoData);
+                    console.log('Has location:', !!messageData.infoData?.location);
+                    
+                    const messageJson = JSON.stringify(messageData);
+                    console.log('Final JSON to append:', messageJson);
+                    
+                    formData.append('message', messageJson);
                     
                     for (let file of files) {
                         console.log('Adding file:', file.name, file.type, file.size);
