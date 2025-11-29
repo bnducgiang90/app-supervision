@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS public.message_attachments (
 	width int4 NULL,
 	height int4 NULL,
 	duration int4 NULL,
+	info_data text NULL,
 	CONSTRAINT message_attachments_pkey PRIMARY KEY (id),
 	CONSTRAINT message_attachments_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.messages(id) ON DELETE CASCADE
 );

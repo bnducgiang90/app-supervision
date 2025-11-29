@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
@@ -27,4 +28,7 @@ public class MessageAttachment {
     private String storagePath;
     private String thumbnailUrl;
     private LocalDateTime createdAt;
+    
+    @Column("info_data")
+    private String infoData; // JSON string for location info (lat, long, detail)
 }

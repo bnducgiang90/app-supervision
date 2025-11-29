@@ -17,4 +17,5 @@ public class AttachmentResponse {
     private Long fileSize;
     private String fileUrl;
     private String thumbnailUrl;
+    private String infoData; // JSON string containing location info (lat, long, detail)
 }

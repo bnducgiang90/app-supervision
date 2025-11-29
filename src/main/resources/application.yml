@@ -3,19 +3,13 @@ spring:
     name: app-supervision
   
   r2dbc:
-<<<<<<< HEAD
 #    url: r2dbc:postgresql://pg-22aff13-trinhtrananlong-e7e5.k.aivencloud.com:15905/defaultdb?sslmode=require
 #    username: avnadmin
 #    password: AVNS_zzjSEfOqQKjgKMXhlm7
     url: r2dbc:postgresql://localhost:5432/chatdb
     username: postgres
     password: Postgres#123
-=======
-    url: r2dbc:postgresql://pg-22aff13-trinhtrananlong-e7e5.k.aivencloud.com:15905/defaultdb?sslmode=require
-    username: avnadmin
-    password: AVNS_zzjSEfOqQKjgKMXhlm7
->>>>>>> 2b03042ae773a023b1166a6e5f5c93b9c45f8231
-    pool:
+  pool:
       initial-size: 10
       max-size: 50
       max-idle-time: 30m
@@ -68,8 +62,5 @@ springdoc:
 # JWT Configuration
 jwt:
   secret: RrD4X91TgrzsrZjAx3ELoltYweXSrGH/wfHgjBKobcs=
-<<<<<<< HEAD
   expiration: 86400000  # 24 hours in milliseconds
-=======
-  expiration: 86400000  # 24 hours in milliseconds
->>>>>>> 2b03042ae773a023b1166a6e5f5c93b9c45f8231
+

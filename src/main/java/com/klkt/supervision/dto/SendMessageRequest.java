@@ -20,4 +20,9 @@ public class SendMessageRequest {
     
     private String content;
     private String messageType = "TEXT";
+    
+    // Location information for images/videos
+    private Double latitude;
+    private Double longitude;
+    private String locationDetail; // Detailed coordinate information
 }

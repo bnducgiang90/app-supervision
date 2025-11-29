@@ -86,6 +86,12 @@ public class MessageService {
                                 // Determine message type from files
                                 String messageType = determineMessageType(files);
                                 
+                                // Log location data from request
+                                log.info("=== Location Data from Request ===");
+                                log.info("Latitude: {}", request.getLatitude());
+                                log.info("Longitude: {}", request.getLongitude());
+                                log.info("LocationDetail: {}", request.getLocationDetail());
+                                
                                 Message message = Message.builder()
                                         .groupId(request.getGroupId())
                                         .groupCode(group.getGroupCode())
@@ -97,8 +103,10 @@ public class MessageService {
                                         .build();
                                 
                                 return messageRepository.save(message)
-                                        .flatMap(savedMessage -> 
-                                                uploadAttachments(savedMessage.getId(), savedMessage.getGroupCode(), files)
+                                        .flatMap(savedMessage -> {
+                                                log.info("Saved message with id: {}", savedMessage.getId());
+                                                return uploadAttachments(savedMessage.getId(), savedMessage.getGroupCode(), files, 
+                                                        request.getLatitude(), request.getLongitude(), request.getLocationDetail())
                                                         .collectList()
                                                         .flatMap(attachments -> {
                                                             // Store additional metadata in infoData if needed (optional)
@@ -135,7 +143,8 @@ public class MessageService {
                                                         .doOnError(error -> {
                                                             log.error("Error processing message with attachments for group {}", 
                                                                     request.getGroupId(), error);
-                                                        }));
+                                                        });
+                                        });
                             });
                 });
     }
@@ -186,9 +195,56 @@ public class MessageService {
                 .switchIfEmpty(Mono.just(false));
     }
     
-    private Flux<MessageAttachment> uploadAttachments(Long messageId, String groupCode, List<FilePart> files) {
+    private Flux<MessageAttachment> uploadAttachments(Long messageId, String groupCode, List<FilePart> files,
+                                                      Double latitude, Double longitude, String locationDetail) {
+        // Log received parameters
+        log.info("=== uploadAttachments called ===");
+        log.info("messageId: {}", messageId);
+        log.info("groupCode: {}", groupCode);
+        log.info("files count: {}", files != null ? files.size() : 0);
+        log.info("latitude: {}", latitude);
+        log.info("longitude: {}", longitude);
+        log.info("locationDetail: {}", locationDetail);
+        
         // Get current date in yyyy-MM-dd format
         String dateFolder = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        
+        // Default location: Hà Nội, Việt Nam
+        final double DEFAULT_LATITUDE = 21.0285;
+        final double DEFAULT_LONGITUDE = 105.8542;
+        final String DEFAULT_LOCATION_DETAIL = "Hà Nội, Việt Nam";
+        
+        // Use default values if location data is null
+        double finalLatitude = latitude != null ? latitude : DEFAULT_LATITUDE;
+        double finalLongitude = longitude != null ? longitude : DEFAULT_LONGITUDE;
+        String finalLocationDetail = (locationDetail != null && !locationDetail.isEmpty()) 
+                ? locationDetail : DEFAULT_LOCATION_DETAIL;
+        
+        log.info("Checking location data - lat: {}, long: {}, detail: {}", latitude, longitude, locationDetail);
+        log.info("Using location - lat: {}, long: {}, detail: {}", finalLatitude, finalLongitude, finalLocationDetail);
+        
+        // Build location info JSON (always create JSON with location data)
+        // Format: {"location":{"detail":"Hà Nội, Việt Nam","lat":21.0285,"long":105.8542}}
+        String infoDataJson = null;
+        try {
+            java.util.Map<String, Object> locationMap = new java.util.HashMap<>();
+            locationMap.put("lat", finalLatitude);
+            locationMap.put("long", finalLongitude);
+            locationMap.put("detail", finalLocationDetail);
+            
+            java.util.Map<String, Object> rootMap = new java.util.HashMap<>();
+            rootMap.put("location", locationMap);
+            
+            com.fasterxml.jackson.databind.ObjectMapper mapper = 
+                    new com.fasterxml.jackson.databind.ObjectMapper();
+            infoDataJson = mapper.writeValueAsString(rootMap);
+            log.info("Location JSON created successfully: {}", infoDataJson);
+        } catch (Exception e) {
+            log.error("Failed to serialize location data", e);
+        }
+        
+        final String finalInfoDataJson = infoDataJson;
+        log.info("Final infoDataJson value: {}", finalInfoDataJson);
         
         return Flux.fromIterable(files)
                 .flatMap(file -> {
@@ -196,6 +252,9 @@ public class MessageService {
                     String folder = groupCode + "/messages/" + messageId + "/" + dateFolder;
                     return fileStorageService.uploadFile(file, folder)
                             .flatMap(uploadResponse -> {
+                                log.info("Building MessageAttachment for file: {}", uploadResponse.getFileName());
+                                log.info("infoData value before building: {}", finalInfoDataJson);
+                                
                                 MessageAttachment attachment = MessageAttachment.builder()
                                         .messageId(messageId)
                                         .fileName(uploadResponse.getFileName())
@@ -205,9 +264,27 @@ public class MessageService {
                                         .storagePath(uploadResponse.getStoragePath())
                                         .thumbnailUrl(uploadResponse.getThumbnailUrl())
                                         .createdAt(LocalDateTime.now())
+                                        .infoData(finalInfoDataJson)
                                         .build();
                                 
-                                return attachmentRepository.save(attachment);
+                                log.info("=== MessageAttachment object created ===");
+                                log.info("Attachment ID: {}", attachment.getId());
+                                log.info("Message ID: {}", attachment.getMessageId());
+                                log.info("File Name: {}", attachment.getFileName());
+                                log.info("File Type: {}", attachment.getFileType());
+                                log.info("infoData: {}", attachment.getInfoData());
+                                log.info("infoData is null: {}", attachment.getInfoData() == null);
+                                
+                                return attachmentRepository.save(attachment)
+                                        .doOnSuccess(saved -> {
+                                            log.info("=== MessageAttachment saved successfully ===");
+                                            log.info("Saved Attachment ID: {}", saved.getId());
+                                            log.info("Saved infoData: {}", saved.getInfoData());
+                                            log.info("Saved infoData is null: {}", saved.getInfoData() == null);
+                                        })
+                                        .doOnError(error -> {
+                                            log.error("Error saving MessageAttachment", error);
+                                        });
                             });
                 });
     }
@@ -226,6 +303,7 @@ public class MessageService {
                                     .fileSize(att.getFileSize())
                                     .fileUrl(att.getFileUrl())
                                     .thumbnailUrl(att.getThumbnailUrl())
+                                    .infoData(att.getInfoData())
                                     .build())
                             .toList();
                     

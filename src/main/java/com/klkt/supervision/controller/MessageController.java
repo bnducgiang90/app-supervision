@@ -35,12 +35,27 @@ public class MessageController {
             @RequestPart("message") String messageJson,
             @RequestPart(value = "files", required = false) Flux<FilePart> files) {
         
-        return Mono.fromCallable(() -> 
-                objectMapper.readValue(messageJson, SendMessageRequest.class))
+        log.info("=== Received upload request ===");
+        log.info("Message JSON: {}", messageJson);
+        
+        return Mono.fromCallable(() -> {
+                    SendMessageRequest request = objectMapper.readValue(messageJson, SendMessageRequest.class);
+                    log.info("=== Parsed SendMessageRequest ===");
+                    log.info("GroupId: {}", request.getGroupId());
+                    log.info("SenderId: {}", request.getSenderId());
+                    log.info("Content: {}", request.getContent());
+                    log.info("MessageType: {}", request.getMessageType());
+                    log.info("Latitude: {}", request.getLatitude());
+                    log.info("Longitude: {}", request.getLongitude());
+                    log.info("LocationDetail: {}", request.getLocationDetail());
+                    return request;
+                })
                 .flatMap(request -> 
                         files != null 
-                            ? files.collectList().flatMap(fileList -> 
-                                    messageService.sendMessageWithAttachments(request, fileList))
+                            ? files.collectList().flatMap(fileList -> {
+                                    log.info("Processing {} files with attachments", fileList.size());
+                                    return messageService.sendMessageWithAttachments(request, fileList);
+                                })
                             : messageService.sendMessage(request))
                 .doOnError(e -> log.error("Error sending message with files", e));
     }
